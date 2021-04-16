@@ -1,44 +1,49 @@
-import sqlite3
+import sys
+from design import *
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
+from PyQt5.QtGui import QPixmap
 
 
-class AgendaDB:
-    def __init__(self, arquivo):
-        self.conn = sqlite3.connect(arquivo)
-        self.cursor = self.conn.cursor()
+class Novo(QMainWindow, Ui_MainWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        super().setupUi(self)
+        self.btnEscolherArquivo.clicked.connect(self.abrir_imagem)
+        self.btnRedimensionar.clicked.connect(self.redimensionar)
+        self.btnSalvar.clicked.connect(self.salvar)
 
-    def inserir(self, nome, telefone):
-        consulta = 'INSERT OR IGNORE INTO agenda (nome, telefone) VALUES (?, ?)'
-        self.cursor.execute(consulta, (nome, telefone))
-        self.conn.commit()
+    def abrir_imagem(self):
+        imagem, _ = QFileDialog.getOpenFileName(
+            self.centralwidget,
+            'Abrir imagem',
+            r'/home/luizotavio/Imagens/',
+            options=QFileDialog.DontUseNativeDialog
+        )
+        self.inputAbrirArquivo.setText(imagem)
+        self.original_img = QPixmap(imagem)
+        self.labelImg.setPixmap(self.original_img)
+        self.inputLargura.setText(str(self.original_img.width()))
+        self.inputAltura.setText(str(self.original_img.height()))
 
-    def editar(self, nome, telefone, id):
-        consulta = 'UPDATE OR IGNORE agenda SET nome=?, telefone=? WHERE id=?'
-        self.cursor.execute(consulta, (nome, telefone, id))
-        self.conn.commit()
+    def redimensionar(self):
+        largura = int(self.inputLargura.text())
+        self.nova_imagem = self.original_img.scaledToWidth(largura)
+        self.labelImg.setPixmap(self.nova_imagem)
+        self.inputLargura.setText(str(self.nova_imagem.width()))
+        self.inputAltura.setText(str(self.nova_imagem.height()))
 
-    def excluir(self, id):
-        consulta = 'DELETE FROM agenda WHERE id=?'
-        self.cursor.execute(consulta, (id,))
-        self.conn.commit()
-
-    def listar(self):
-        self.cursor.execute('SELECT * FROM agenda')
-
-        for linha in self.cursor.fetchall():
-            print(linha)
-
-    def buscar(self, valor):
-        consulta = 'SELECT * FROM agenda WHERE nome LIKE ?'
-        self.cursor.execute(consulta, (f'%{valor}%',))
-
-        for linha in self.cursor.fetchall():
-            print(linha)
-
-    def fechar(self):
-        self.cursor.close()
-        self.conn.close()
+    def salvar(self):
+        imagem, _ = QFileDialog.getSaveFileName(
+            self.centralwidget,
+            'Salvar imagem',
+            r'/home/luizotavio/Desktop/',
+            options=QFileDialog.DontUseNativeDialog
+        )
+        self.nova_imagem.save(imagem, 'PNG')
 
 
 if __name__ == '__main__':
-    agenda = AgendaDB('agenda.db')
-    agenda.buscar('luiz')
+    qt = QApplication(sys.argv)
+    novo = Novo()
+    novo.show()
+    qt.exec_()
